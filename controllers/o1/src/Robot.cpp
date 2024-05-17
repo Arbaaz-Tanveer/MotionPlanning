@@ -2,8 +2,31 @@
 #include <iostream>
 #include <fstream>
 #include <string>
+#include <boost/asio.hpp>
+
 
 using namespace robot;
+
+
+//initializing ports for arduino communication
+boost::asio::io_service io;
+boost::asio::serial_port serial1(io, "/dev/ttyUSB0"); // Replace with your serial port name for Arduino 1
+boost::asio::serial_port serial2(io, "/dev/ttyUSB1"); // Replace with your serial port name for Arduino 2
+
+void configureSerialPorts() {
+    serial1.set_option(boost::asio::serial_port_base::baud_rate(9600));
+    serial1.set_option(boost::asio::serial_port_base::character_size(8));
+    serial1.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+    serial1.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+    serial1.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
+
+    serial2.set_option(boost::asio::serial_port_base::baud_rate(9600));
+    serial2.set_option(boost::asio::serial_port_base::character_size(8));
+    serial2.set_option(boost::asio::serial_port_base::parity(boost::asio::serial_port_base::parity::none));
+    serial2.set_option(boost::asio::serial_port_base::stop_bits(boost::asio::serial_port_base::stop_bits::one));
+    serial2.set_option(boost::asio::serial_port_base::flow_control(boost::asio::serial_port_base::flow_control::none));
+}
+
 
 RobotKinematic *RobotKinematic::instance = 0;
 
@@ -95,6 +118,17 @@ std::string encode_w(double w1, double w2)
     return str1 + str2 + std::to_string(w1<0) + std::to_string(w2<0) + '\n';
 }
 
+
+void sendData(boost::asio::serial_port& serial, const std::string& data) {
+    try {
+        boost::asio::write(serial, boost::asio::buffer(data));
+        std::cout << "Data sent: " << data << std::endl;
+    } catch (std::exception& e) {
+        std::cerr << "Error sending data: " << e.what() << std::endl;
+    }
+}
+
+
 void RobotKinematic::inverseKinematics(wheelAngularVel &outputInverse,
                                        double velglobal_x, double velglobal_y,
                                        double velglobal_theta) {
@@ -114,24 +148,14 @@ void RobotKinematic::inverseKinematics(wheelAngularVel &outputInverse,
         (cos(a * M_PI / 180) * velglobal_x + sin(a * M_PI / 180) * velglobal_y +
          L * velglobal_theta) /
         r_wheel;
-
-    std::string port1 = "/dev/ttyUSB0", port2 = "/dev/ttyUSB1";
-    std::ofstream arduino1(port1);
-    std::ofstream arduino2(port2);
-
-    if (!arduino1.is_open()) {
-        std::cerr << "Failed to open port " << port1 << std::endl;
-        return;
-    }
-    if (!arduino2.is_open()) {
-        std::cerr << "Failed to open port " << port2 << std::endl;
-        return;
-    }
-
-    arduino1 << encode_w(outputInverse.w1, outputInverse.w2);
-    arduino2 << encode_w(outputInverse.w3, outputInverse.w4);
+    
+    //sending data to arduino
+    std::string data1 = encode_w(outputInverse.w1, outputInverse.w2);
+    std::string data2 = encode_w(outputInverse.w3, outputInverse.w4);
+    sendData(serial1, data1);
+    sendData(serial2, data2);
 
     std::cout << encode_w(outputInverse.w1, outputInverse.w2) + " " + encode_w(outputInverse.w3, outputInverse.w4) + '\n';
-
+    
     return;
 }
