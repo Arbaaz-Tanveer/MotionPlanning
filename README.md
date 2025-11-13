@@ -1,6 +1,6 @@
 # Motion Planning for RoboCup MSL Robots
-This repository is built on top of https://github.com/debrajk22/MotionPlanning
-This repository includes the Motion planning codebase of a RoboCup MSL Robot using a 4-wheel omni-drive for Team ERA IITK.
+This repository is built on top of https://github.com/debrajk22/MotionPlanning.
+The repository includes the Motion planning codebase of a RoboCup MSL Robot using a 4-wheel omni-drive for Team ERA IITK.
 
 ## 📁 Workspace Structure
 
